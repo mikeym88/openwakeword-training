@@ -1,0 +1,23 @@
+#piper-phonemize
+webrtcvad
+mutagen>=1.47.0
+torchinfo>=1.8.0
+torchmetrics>=1.2.0
+speechbrain>=0.5.14
+audiomentations>=0.33.0
+torch-audiomentations>=0.11.0
+acoustics>=0.2.6
+tensorflow-cpu>=2.8.1
+tensorflow_probability>=0.16.0
+onnx_tf>=1.10.0
+pronouncing>=0.2.0
+datasets[audio]>=2.14.6
+deep-phonemizer>=0.0.19
+torchcodec
+
+# For Parquet support
+duckdb
+
+# For audio processing
+pydub
+# audioop-lts
