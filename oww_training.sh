@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
+# Based on https://github.com/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb
+
 sudo apt-get update
 sudo apt-get install -y git ffmpeg libsndfile1 espeak-ng wget git tar curl build-essential \
     patchelf ninja-build cmake libssl-dev; # Maybe even libsndfile1-dev sox
 
-# Based on https://github.com/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb
 
 cd ~/workspace/oww
 
