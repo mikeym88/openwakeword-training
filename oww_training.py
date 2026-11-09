@@ -1,5 +1,5 @@
 """
-OpenWakeWords Training Data Preparation Script
+OpenWakeWords Training Data Preparation Script. Based on the [OpenWakeWord Jupyter Notebook][openwakeword-jupyter-notebook].
 
 # Requirements
 
@@ -13,6 +13,8 @@ OpenWakeWords Training Data Preparation Script
 [python-audioop]: https://docs.python.org/3/library/audioop.html
 [audioop-lts]: https://pypi.org/project/audioop-lts/
 [flac-to-wav]: https://stackoverflow.com/questions/58424108/with-python-how-can-i-convert-a-flac-stream-to-a-wav-stream
+[openwakeword-jupyter-notebook]: https://github.com/dscripka/openWakeWord/blob/main/notebooks/automatic_model_training.ipynb
+
 """
 
 import os
@@ -64,11 +66,11 @@ def process_room_impulse_responses(output_dir: str = "./mit_rirs"):
     print("Done saving MIT RIR clips.")
 
 
-def process_background_noise():
+def process_google_audioset_dataset():
     '''
 
     Notes:
-    * https://huggingface.co/datasets/Fhrozen/FSD50k
+    *
     '''
     ## Download noise and background audio
 
@@ -106,33 +108,75 @@ def process_background_noise():
             audio_16k = flac.set_frame_rate(16000)
             audio_16k.export(dst_file_path, format=target_file_type)
 
-    # Convert audioset files to 16khz sample rate
-    # audioset_dataset = datasets.Dataset.from_dict({"audio": [str(i) for i in Path("audioset/audio").glob("**/*.flac")]})
-    # audioset_dataset = audioset_dataset.cast_column("audio", datasets.Audio(sampling_rate=16000))
-    # for row in tqdm(audioset_dataset):
-    #     name = row['audio']['path'].split('/')[-1].replace(".flac", ".wav")
-    #     scipy.io.wavfile.write(os.path.join(output_dir, name), 16000, (row['audio']['array']*32767).astype(np.int16))
 
-    # Free Music Archive dataset (https://github.com/mdeff/fma)
-    output_dir = "./fma"
+def process_fma_dataset(fma_dataset: str = "benjamin-paine/free-music-archive-full", output_dir: str = "./fma"):
+    """Process the Free Music Archive (FMA) dataset.
+
+    The dataset contains a collection of music tracks in various genres and is commonly used for music information retrieval tasks.
+
+    # Notes
+
+    * The FMA dataset is available on [HuggingFace][hf-fma-replacement] and [GitHub][github-fma].
+    * The original instructions used a [dataset][hf-fma-original] that has a Python loading sript which is no longer supported by HuggingFace. The replacement dataset is a streaming dataset that can be used to process the FMA dataset in a more efficient manner.
+
+    [github-fma]: https://github.com/mdeff/fma
+    [hf-fma-original]: https://huggingface.co/datasets/rudraml/fma
+    [hf-fma-replacement]: https://huggingface.co/datasets/benjamin-paine/free-music-archive-full
+    """
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    fma_dataset = datasets.load_dataset("rudraml/fma", name="small", split="train", streaming=True)
+    fma_dataset = datasets.load_dataset(
+        fma_dataset,
+        # name="small",
+        split="train",
+        streaming=True,
+    )
     fma_dataset = iter(fma_dataset.cast_column("audio", datasets.Audio(sampling_rate=16000)))
 
-    # n_hours = 1  # use only 1 hour of clips for this example notebook, recommend increasing for full-scale training
-    # for i in tqdm(range(n_hours*3600//30)):  # this works because the FMA dataset is all 30 second clips
-    #     row = next(fma_dataset)
-    #     name = row['audio']['path'].split('/')[-1].replace(".mp3", ".wav")
-    #     scipy.io.wavfile.write(os.path.join(output_dir, name), 16000, (row['audio']['array']*32767).astype(np.int16))
-    #     i += 1
-    #     if i == n_hours*3600//30:
-    #         break
+    n_hours = 5
+    i = 0
+    for row in fma_dataset:  # this works because the FMA dataset is all 30 second clips
+        try:
+            # row = next(fma_dataset)
+            # print(f"Processing FMA dataset clip for file {row.title}...")
+            title: str = row.get("title")
+            audio: datasets._torchcodec.AudioDecoder = row.get("audio")
+            audio_bytes = audio._hf_encoded.get("bytes")
+            audio_path = audio.metadata.path
+            audio_name = audio_path.split("/")[-1]
+            source_codec = audio.metadata.codec
+            dst_file = os.path.join(output_dir, audio_name.replace(f".{source_codec}", ".wav"))
+            print(f"Processing FMA dataset clip for file {title} ({audio_name})...", end = " ")
+            # Skip file if exists, to avoid re-processing the same file if the script is interrupted and restarted
+            if os.path.exists(dst_file):
+                print("File already exists, skipping.")
+            else:
+                flac = AudioSegment.from_file(io.BytesIO(audio_bytes), format=source_codec)
+                audio_16k = flac.set_frame_rate(16000)
+                audio_16k.export(dst_file,format="wav")
+                print("done.")
+        except StopIteration:
+            print("Finished processing FMA dataset.")
+            break
+        i += 1
+        if i == n_hours*3600//30:
+            break
+
+def process_FSD50k_dataset():
+    """Process the FSD50k dataset.
+
+    The FSD50k dataset is available on [HuggingFace][hf-fsd50k].
+    The dataset contains a collection of audio clips in various
+    categories and is commonly used for audio classification tasks.
+
+    [hf-fsd50k]: https://huggingface.co/datasets/Fhrozen/FSD50k
+    """
+    raise NotImplementedError("FSD50k dataset processing is not yet implemented. Please refer to the HuggingFace documentation for details on how to process this dataset.")
 
 def main():
     # process_room_impulse_responses()
-    process_background_noise()
+    # process_google_audioset_dataset()
+    process_fma_dataset()
 
 if __name__ == "__main__":
-
     main()
