@@ -11,7 +11,7 @@ tensorflow-cpu>=2.8.1
 tensorflow_probability>=0.16.0
 onnx_tf>=1.10.0
 pronouncing>=0.2.0
-datasets[audio]>=2.14.6
+datasets[audio]>=2.14.6,<=4.0.0
 deep-phonemizer>=0.0.19
 torchcodec
 
